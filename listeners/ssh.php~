@@ -1,0 +1,81 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: paayab
+ * Date: 12/10/2014
+ * Time: 01:05 PM
+ */
+
+
+class ssh{
+
+	public $connection = false;
+	public $stream = false;
+	public $errorStream = false;
+
+	public function __construct($ip, $user, $pass){
+		$this->connection = ssh2_connect($ip) or die("Error in connection.");
+		ssh2_auth_password($this->connection, $user, $pass) or die("Error in authentication.");
+	}
+
+	public function exec($query = false, $functions = false){
+		$this->stream = ssh2_exec($this->connection, $query);
+		if($functions){
+			$this->fetch();
+			$this->set_blocking();
+			return $this->get_contents();
+		}
+	}
+
+	public function fetch(){
+		$this->errorStream = ssh2_fetch_stream($this->stream, SSH2_STREAM_STDERR);
+	}
+
+	public function set_blocking(){
+		stream_set_blocking($this->errorStream, true);
+		stream_set_blocking($this->stream, true);
+	}
+
+	public function get_contents(){
+		$errContent = stream_get_contents($this->errorStream);
+		if(strlen($errContent)>0)
+			return "Error: ".$errContent;
+		return stream_get_contents($this->stream);
+	}
+
+	public function __destruct(){
+		
+		fclose($this->errorStream);
+		fclose($this->stream);
+
+	}
+
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+$ssh1 = new ssh('192.168.1.1', 'mikroman', 'mikroman');
+$result = $ssh1->exec("system identity print", true);
+echo "<pre>  $result  </pre>";
+
+
+$result = $ssh1->exec("system routerboard print", true);
+echo "<pre>  $result  </pre>";
+
+
+$result = $ssh1->exec("system license print", true);
+echo "<pre>  $result  </pre>";
+
+
